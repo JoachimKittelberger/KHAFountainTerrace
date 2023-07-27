@@ -1,0 +1,45 @@
+[
+{
+    "switches" : [
+        {
+            "id": 1,
+            "state": 0
+        },
+        {
+            "id": 2,
+            "state": 1
+        },
+        {
+            "id": 3,
+            "state": 0
+        }
+    ]
+},
+
+{
+    "_comment": "Format for getting the current values",
+    "data": {
+        "temperature": 25.5,
+        "humidity": 50.6,
+        "distance": 123,
+        "carPresence": 1,
+        "doorstate": 0
+    }
+},
+
+{
+    "_comment": "Format for setting the door",
+    "action": {
+        "doorstate": "move, open, close"
+    }
+},
+
+{
+    "Logger" : [
+        { "text": "Line1" },
+        { "text": "Line2" }
+    ]
+}
+
+
+]
