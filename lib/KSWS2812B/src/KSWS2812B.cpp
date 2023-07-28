@@ -12,7 +12,7 @@
  *
  * @todo
  *
- * @bug bug description
+ * @bug
  */
 
 /**
@@ -34,8 +34,7 @@
  */
 
 #include "KSWS2812B.h"
-//#include "KSLogger/KSLogger.h"
-#define LOGGER Serial
+#include "KSLogger.h"
 
 
 

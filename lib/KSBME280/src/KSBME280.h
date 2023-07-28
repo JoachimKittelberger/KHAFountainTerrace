@@ -1,3 +1,43 @@
+/**
+ * @file KSBME280.h
+ * 
+ * @brief Header for KSBME280 class
+ * 
+ * @details handles the temperature and humidity module BME280 via I2C
+ * 
+ * @see
+ *   - adafruit/Adafruit BusIO @ ^1.14.1            https://github.com/adafruit/Adafruit_BusIO.git
+ *   - adafruit/Adafruit Unified Sensor @ ^1.1.11   https://github.com/adafruit/Adafruit_Sensor.git
+ *   - adafruit/Adafruit BME280 Library @ ^2.2.2    https://github.com/adafruit/Adafruit_BME280_Library.git
+ * 
+ * @author Joachim Kittelberger <jkittelberger@kibesoft.de>
+ * @date 28.07.2023
+ * @version 1.00
+ *
+ * @todo
+ *   - Add Class-Headers to all KSLibraries-Files
+ *   - Add Function-Headers to all KSLibraries-Files
+ * @bug
+ */
+
+/**
+ * @copyright
+ * Copyright (C) 2022, KibeSoft - Joachim Kittelberger, (https://www.kibesoft.de)
+ * All rights reserved
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef _KSBME280_H
 #define _KSBME280_H
 
@@ -5,11 +45,11 @@
 #include "KSInterfaces.h"
 #include "KSCriticalSection.h"
 
-
+// Default pins for I2C
 #define KS_BME_SDA 21
 #define KS_BME_SCL 22
 
-
+// default pressure for sea level
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 

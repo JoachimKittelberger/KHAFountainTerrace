@@ -6,6 +6,9 @@
  * @details
  * 
  * @see Hardware description in "Schaltplan BrunnenTerrasse.pdf"
+ *   - me-no-dev/AsyncTCP@^1.1.1										; ESPAsyncWebServer
+ *   - https://github.com/me-no-dev/ESPAsyncWebServer.git @ ^1.2.3		; ESPAsyncWebServer
+ *   - bblanchon/ArduinoJson @ ^6.21.3									; JSON
  * 
  * @author Joachim Kittelberger <jkittelberger@kibesoft.de>
  * @date 01.07.2022
@@ -14,6 +17,10 @@
  * @todo
  *   + store last settings in preferences
  *   + set default values to other values
+ *
+ *   - Use KSOTA
+ *   - Use KSMQTTConnection
+ *   - Change Partition-Table with CSV (more size and OTA)
  *   - Add FileHeaders to all files
  *   - add more effects (see links in KSWS2812B.h in todo-section)
  *

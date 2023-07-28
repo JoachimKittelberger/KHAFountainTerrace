@@ -5,6 +5,8 @@
  * 
  * @details 
  * 
+ * @see
+ *   - 	adafruit/Adafruit NeoPixel @ ^1.11.0            https://github.com/adafruit/Adafruit_NeoPixel.git
  * 
  * @author Joachim Kittelberger <jkittelberger@kibesoft.de>
  * @date 20.06.2022
@@ -17,7 +19,7 @@
  *   - https://adrianotiger.github.io/Neopixel-Effect-Generator/
  *   - https://kno.wled.ge/advanced/custom-features/
  *
- * @bug bug description
+ * @bug
  */
 
 /**
@@ -44,12 +46,6 @@
 
 
 #include <Adafruit_NeoPixel.h>
-
-// we need a critical secction
-//#define DONT_INCLUDE_KSLLibraries_CPP 1         // we need this because we are not in KSLibraries-Path
-//#define USE_KSCriticalSection 1
-//#include "KSLibraries.h"
-
 #include "KSCriticalSection.h"
 
 // TODO: Evtl. die einzelnen Effekte in Klassen packen, die ihr Verhalten dann selber steuern können
