@@ -6,19 +6,19 @@
 // comment //#define CONFIG_LITTLEFS_FOR_IDF_3_2 in esp_littlefs.c
 // 30.07.2022: Wird vermutlich nicht mehr benötigt
 
-// For use with SPIFFS
+// For use with LittleFS and SPIFFS
 #define KSUSE_LittleFS
 
 #ifdef KSUSE_LittleFS
-  	#define SPIFFS LITTLEFS        // TODO: we got an error if we use this. Don't know if we uncomment this again
-
 	// benötigen wir nur, weill der Firebeetle noch keine Unterstützung für LittleFS hat
 	#ifdef KSUSE_OLDFS_FOR_FIREBEETLE
 		#include <LITTLEFS.h> 
 	  	#define LittleFS LITTLEFS
+  		#define SPIFFS LITTLEFS        // TODO: we got an error if we use this. Don't know if we uncomment this again
         #warning Use LITTLEFS only in projects with Firebeetle and weatherstation in /Users/CloudStation/Privat/Projekte/ESP32/libraries/KSLibraries/KSAutoUpdate/KSAutoUpdate.h
 	#else
 		#include <LittleFS.h>
+  		#define SPIFFS LittleFS        // TODO: we got an error if we use this. Don't know if we uncomment this again
         //#warning Using LittleFS for current project
 	#endif
 #else

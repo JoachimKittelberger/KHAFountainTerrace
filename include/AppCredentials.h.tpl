@@ -22,7 +22,7 @@ const char ShellyIPTerrasseLEDs[] = "192.168.1.10";
 
 // Application specific
 // TODO: diese Topics anpassen
-const char mqttClientID[] = "MyFountainTerrace";
+const char mqttClientID[] = "KHAFountainTerrace";
 
 
 #endif          // #define _CREDENTIALS_H
