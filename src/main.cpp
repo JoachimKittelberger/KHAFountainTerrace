@@ -17,10 +17,13 @@
  * @todo
  *   + store last settings in preferences
  *   + set default values to other values
+ *   + Change Partition-Table with CSV (more size and OTA)
+ *   + Use KSOTA
  *
- *   - Use KSOTA
+ *   - put KSFileSystem in a class
+ *   - put Fontain and IO functions in separat Files/classes
+ *   - Put lib in KSESPFramework
  *   - Use KSMQTTConnection
- *   - Change Partition-Table with CSV (more size and OTA)
  *   - Add FileHeaders to all files
  *   - add more effects (see links in KSWS2812B.h in todo-section)
  *
@@ -109,6 +112,20 @@ const int ModeRelais2Pin = 22;
 
 const int SpeedControlPotiPin = 32;			// Nur zum Test fürs einlesen von Werten
 
+
+#ifdef ESP32
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#elif defined(ESP8266)
+//#include <ESP8266WiFi.h>
+//#include <ESPAsyncTCP.h>
+#endif
+#include <ESPAsyncWebServer.h>
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
+
+
+
 // we controll the power of the LEDs and Fontain with a shelly at 220V side
 #include "KSShelly.h"
 
@@ -126,32 +143,16 @@ KSNTPClient ntp;
 KSFTPServer ftp;
 
 
+#include "KSOTA.h"
+KSOTA ota(PROJECT_NAME, NULL, &server);				// Enable OTA
+
+
 //KSMQTTConnection mqtt;
-//KSOTA ota(PROJECT_NAME);				// Enable OTA
 //KSResetController resetController(2*24*60*60);		// reset the device every 2d
-
 //KSHomeKit homeKit(PROJECT_NAME, SW_VERSION);  // Projectname wird ignoriert. Wird von homeSpan Service DisplayName genommen
-
-
-
-#ifdef ESP32
-#include <WiFi.h>
-#include <AsyncTCP.h>
-#elif defined(ESP8266)
-//#include <ESP8266WiFi.h>
-//#include <ESPAsyncTCP.h>
-#endif
-#include <ESPAsyncWebServer.h>
-AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
-
 
 #include "GlobalDefinitions.h"
 BrunnenData brunnenTerrace;
-
-
-
-
 
 
 #include "KSLogger.h"
@@ -160,123 +161,9 @@ BrunnenData brunnenTerrace;
 //#define LOG_LEVEL LOG_LEVEL_DEBUG
 
 
+#include "Settings.h"
 #define SAVE_SETTINGS_INTERVALL 5*60*1000		// save last settings all 5 min if something has changed
-#define PREFKEY_FOUNTAIN_TERRACE "fountainterrace"
-bool bSettingsChanged = false;
-
-#include "KSPreferences.h"			// wird nur benötigt, wenn in eigener Datei ausgelagert
-bool saveCurrentDataToMemory(BrunnenData* pBrunnen);
-bool loadCurrentDataFromMemory(BrunnenData* pBrunnen);
-void deleteDataFromMemory();
-
-
-bool saveCurrentDataToMemory(BrunnenData* pBrunnen) {
-	KSPreferences prefs;
-	if (pBrunnen && prefs.begin(PREFKEY_FOUNTAIN_TERRACE, false)) {
-
-		// names must be max 15 chars
-		// save fontain data
-		prefs.putBool("issolaron", pBrunnen->fontain.isSolarOn);
-		prefs.putBool("isfontainon", pBrunnen->fontain.isFontainOn);
-		prefs.putInt("height", pBrunnen->fontain.height);
-			
-		// save ledBrunnen data
-		prefs.putBool("brison", pBrunnen->ledBrunnen.isOn);
-		prefs.putInt("brbrightness", pBrunnen->ledBrunnen.brightness);
-		prefs.putUInt("brcolor", pBrunnen->ledBrunnen.color);
-		prefs.putInt("brlighteffect", pBrunnen->ledBrunnen.lightEffect);
-		prefs.putInt("brlespeed", pBrunnen->ledBrunnen.lightEffectSpeed);
-		
-		// save ledRing data
-		prefs.putBool("riison", pBrunnen->ledRing.isOn);
-		prefs.putInt("ribrightness", pBrunnen->ledRing.brightness);
-		prefs.putUInt("ricolor", pBrunnen->ledRing.color);
-		prefs.putInt("rilighteffect", pBrunnen->ledRing.lightEffect);
-		prefs.putInt("rilespeed", pBrunnen->ledRing.lightEffectSpeed);
-
-		// save ledStufe data
-		prefs.putBool("stison", pBrunnen->ledStufe.isOn);
-		prefs.putInt("stbrightness", pBrunnen->ledStufe.brightness);
-		prefs.putUInt("stcolor", pBrunnen->ledStufe.color);
-		prefs.putInt("stlighteffect", pBrunnen->ledStufe.lightEffect);
-		prefs.putInt("stlespeed", pBrunnen->ledStufe.lightEffectSpeed);
-
-		prefs.end();
-		return true;
-	}
-	prefs.end();
-	return false;
-}
-
-
-bool loadCurrentDataFromMemory(BrunnenData* pBrunnen) {
-	KSPreferences prefs;
-	if (pBrunnen && prefs.begin(PREFKEY_FOUNTAIN_TERRACE, true)) {
-		// names must be max 15 chars
-		// load fontain data
-		pBrunnen->fontain.isSolarOn = prefs.getBool("issolaron", false);
-		pBrunnen->fontain.isFontainOn = prefs.getBool("isfontainon", false);
-		pBrunnen->fontain.height = prefs.getInt("height", 150);
-		pBrunnen->fontain.height = constrain(pBrunnen->fontain.height, 0, 255);
-		
-		// load ledBrunnen data
-		pBrunnen->ledBrunnen.isOn = prefs.getBool("brison", false);
-		pBrunnen->ledBrunnen.brightness = prefs.getInt("brbrightness", 100);
-		pBrunnen->ledBrunnen.brightness = constrain(pBrunnen->ledBrunnen.brightness, 0, 255);
-		pBrunnen->ledBrunnen.color = prefs.getUInt("brcolor", 0x0000FF);
-		int le = prefs.getInt("brlighteffect", LightEffect::LEBlack);
-		le = constrain(le, 0, LightEffect::LENumOfLightEffects - 1);
-		pBrunnen->ledBrunnen.lightEffect = (LightEffect)le;
-		pBrunnen->ledBrunnen.lightEffectSpeed = prefs.getInt("brlespeed", 100);
-		pBrunnen->ledBrunnen.lightEffectSpeed = constrain(pBrunnen->ledBrunnen.lightEffectSpeed, 20, 2000);
-
-		// load ledRing data
-		pBrunnen->ledRing.isOn = prefs.getBool("riison", false);
-		pBrunnen->ledRing.brightness = prefs.getInt("ribrightness", 100);
-		pBrunnen->ledRing.brightness = constrain(pBrunnen->ledRing.brightness, 0, 255);
-		pBrunnen->ledRing.color = prefs.getUInt("ricolor", 0x0000FF);
-		le = prefs.getInt("rilighteffect", LightEffect::LEBlack);
-		le = constrain(le, 0, LightEffect::LENumOfLightEffects - 1);
-		pBrunnen->ledRing.lightEffect = (LightEffect)le;
-		pBrunnen->ledRing.lightEffectSpeed = prefs.getInt("rilespeed", 100);
-		pBrunnen->ledRing.lightEffectSpeed = constrain(pBrunnen->ledRing.lightEffectSpeed, 20, 4000);
-
-		// load ledStufe data
-		pBrunnen->ledStufe.isOn = prefs.getBool("stison", false);
-		pBrunnen->ledStufe.brightness = prefs.getInt("stbrightness", 100);
-		pBrunnen->ledStufe.brightness = constrain(pBrunnen->ledStufe.brightness, 0, 255);
-		pBrunnen->ledStufe.color = prefs.getUInt("stcolor", 0x0000FF);
-		le = prefs.getInt("stlighteffect", LightEffect::LEBlack);
-		le = constrain(le, 0, LightEffect::LENumOfLightEffects - 1);
-		pBrunnen->ledStufe.lightEffect = (LightEffect)le;
-		pBrunnen->ledStufe.lightEffectSpeed = prefs.getInt("stlespeed", 100);
-		pBrunnen->ledStufe.lightEffectSpeed = constrain(pBrunnen->ledStufe.lightEffectSpeed, 20, 2000);
-
-		bSettingsChanged = false;
-		prefs.end();
-		return true;
-	}
-	prefs.end();
-	return false;
-}
-
-
-void deleteDataFromMemory() {
-	KSPreferences prefs;
-
-	if (prefs.begin(PREFKEY_FOUNTAIN_TERRACE, false)) {
-		prefs.clear();		// alle Keys unterhalb Namespace löschen
-
-		// oder keys einzeln löschen
-		// names must be max 15 chars
-		// prefs.remove("issolaron");	// remove key from namespace
-		bSettingsChanged = true;
-	}
-	
-	prefs.end();
-}
-
-
+Settings settings(&brunnenTerrace);
 
 
 
@@ -297,7 +184,7 @@ void switchToSolarMode(bool bSolarMode) {
 		digitalWrite(ModeRelais1Pin, true);		// ausschalten
 		digitalWrite(ModeRelais2Pin, true);
 		brunnenTerrace.fontain.isSolarOn = true;
-		bSettingsChanged = true;
+		settings.changed();
     }
 }
 
@@ -306,7 +193,7 @@ void switchToPowerMode() {
 	digitalWrite(ModeRelais1Pin, false);	// einschalten
 	digitalWrite(ModeRelais2Pin, false);
 	brunnenTerrace.fontain.isSolarOn = false;
-	bSettingsChanged = true;
+	settings.changed();
 }
 
 
@@ -335,7 +222,7 @@ void setFontainOn(bool bOn) {
 	if (bOn) {
 		ledcWrite(LEDC_CHANNEL_MOTORPWM, lastFontainHeight);
 		brunnenTerrace.fontain.isFontainOn = true;
-		bSettingsChanged = true;
+		settings.changed();
 	} else {
 		setFontainOff();
 	}
@@ -345,7 +232,7 @@ void setFontainOn(bool bOn) {
 void setFontainOff() {
 	ledcWrite(LEDC_CHANNEL_MOTORPWM, 0);
 	brunnenTerrace.fontain.isFontainOn = false;
-	bSettingsChanged = true;
+	settings.changed();
 }
 
 
@@ -362,7 +249,7 @@ void setFontainHeight(int height) {        // maximum hight = 255. Minimum Hight
 	ledcWrite(LEDC_CHANNEL_MOTORPWM, height);
 	lastFontainHeight = height;
 	brunnenTerrace.fontain.height = height;
-	bSettingsChanged = true;
+	settings.changed();
 }
 
 
@@ -774,7 +661,7 @@ void handleJSONMessage(const char* data, size_t len) {
 			LOGGER.println();
 		}
 
-		bSettingsChanged = true;			// something has changed
+		settings.changed();				// something has changed
 	}
 }
 
@@ -900,19 +787,17 @@ void onTelnetReadCommand(char* szCommand) {
 	}
 	else if (strcasecmp(szCommand, "Erase") == 0) {
 		LOGGER.println("Erase all Data");
-		deleteDataFromMemory();
+		settings.deleteSettingsFromMemory();
 //		homeKit.EraseFlashData();
 	}
 	else if (strcasecmp(szCommand, "Save") == 0) {
 		LOGGER.print("Save Data ...");
-		if (saveCurrentDataToMemory(&brunnenTerrace)) {
-			bSettingsChanged = false;
+		if (settings.saveCurrentSettingsToMemory()) {
 			LOGGER.println(" Succeeded!");
 		} else {
 			LOGGER.println(" Error in Saving!");
 		}
 	}
-
 	else if (strcasecmp(szCommand, "Fontain On") == 0) {
 		LOGGER.println("Set Fontain On");
 		setFontainOn();
@@ -958,6 +843,23 @@ void onReset() {
   Serial.flush();
   vTaskDelay(pdMS_TO_TICKS(100));
 }
+
+
+
+
+
+// wird aufgerufen, wenn OTA in progress ist
+void onOTAProgress(unsigned int progress, unsigned int total) {
+    static unsigned int lastPercentage = 0;
+	unsigned int percentage = progress / (total / 100);
+
+	// show only if new value
+	if (percentage != lastPercentage) {
+		LOGGER.printf("OnOTAProgress %d%%\n", percentage);
+		lastPercentage = percentage;
+	}
+}
+
 
 
 
@@ -1038,30 +940,6 @@ void setup(){
 		Serial.println(F("[WiFi] Set Event EG_NETWORK_CONNECTED"));
 	}
 #else
-/*
-	// use home netwotk to connect
-	//WiFi.disconnect();
-	WiFi.mode(WIFI_STA);
-	IPAddress ipAddr;
-	IPAddress gateway;
-	IPAddress subnet;
-	IPAddress dns;
-
-	ipAddr.fromString(staticIP);
-	gateway.fromString(staticGateway);
-	subnet.fromString(staticSubnet);
-	dns.fromString(staticDNS);
-
-	WiFi.config(ipAddr, gateway, subnet, dns);
-
-  	WiFi.begin(ssid, password);
-  	Serial.print("Connecting to WiFi ..");
-  	while (WiFi.status() != WL_CONNECTED) {
-	    Serial.print('.');
-    	delay(1000);
-  	}
-  	Serial.println(WiFi.localIP());
-	*/
 	wifi.setStaticConfig(staticIP, staticGateway, staticSubnet, staticDNS);
 	TaskHandle_t hWifiConnection = wifi.createConnection(&hEventGroupNetwork);
 #endif
@@ -1077,9 +955,12 @@ void setup(){
 	TaskHandle_t hFTP = ftp.createConnection(&hEventGroupNetwork);
 	ftp.setCredentials(ftpUserName, ftpUserPassword);
 
-/*
+
+	ota.setProjectInfo(PROJECT_NAME, SW_VERSION);
+	ota.setCredentials(updateUserName, updateUserPassword);			// TODO: Store the credentials in global credential File
+	ota.setOnProgressListener(onOTAProgress);
 	TaskHandle_t hOTAConnection = ota.createConnection(&hEventGroupNetwork); 
-*/	
+	
 	TaskHandle_t hTelnet = Telnet2.createConnection(&hEventGroupNetwork);
 	Telnet2.setProjectAndVersion(const_cast<char*>(PROJECT_NAME), const_cast<char*>(SW_VERSION));
 	Telnet2.setOnReadCommandListener(onTelnetReadCommand);
@@ -1088,11 +969,7 @@ void setup(){
 	//mqtt.setOnSubscribedTopicListener(mqttTopicCMDOpenGarage, OnSubscribedCMDOpenGarage);
 
 
-
-	// Start FileSystem first
-
     // Initialize file system
-    //MessageOutput.print("Initialize FS... ");		// from OpenDTU
     LOGGER.print("Initialize FS... ");
     if (!KSFileSystem.begin(false)) { // Do not format if mount failed
         LOGGER.print("failed... trying to format...");
@@ -1110,14 +987,14 @@ void setup(){
 
 
 
-	//deleteDataFromMemory();		// Just for initialization of memory. Its available via telnet "Erase"
+	//deleteSettingsFromMemory();		// Just for initialization of memory. Its available via telnet "Erase"
 	// load the last settings and initialize the hardware with this setting
-	loadCurrentDataFromMemory(&brunnenTerrace);
+	settings.loadCurrentSettingsFromMemory();
 	// initialize Hardware with settings
 	char output[1024];
 	createJSONMessage(output, sizeof(output));
 	handleJSONMessage(output, sizeof(output));
-	bSettingsChanged = false;
+	settings.changed(false);
 
 
 
@@ -1216,9 +1093,8 @@ void loop() {
 
 	// save last settings in preferences. Check all 5 minutes
  	BEGIN_CYCLIC(SavePreferences, SAVE_SETTINGS_INTERVALL)
-		if (bSettingsChanged) {
-			if (saveCurrentDataToMemory(&brunnenTerrace)) {
-				bSettingsChanged = false;
+		if (settings.hasChanged()) {
+			if (settings.saveCurrentSettingsToMemory()) {
 			} else {
 				LOGGER.println("Error in writing settings to preferences!");
 			}
@@ -1228,9 +1104,8 @@ void loop() {
 /*
 	static unsigned long lastSavePreferencesMillis = 0;
 	if (millis() - lastSavePreferencesMillis > SAVE_SETTINGS_INTERVALL) {
-		if (bSettingsChanged) {
-			if (saveCurrentDataToMemory(&brunnenTerrace)) {
-				bSettingsChanged = false;
+		if (settings.hasChanged()) {
+			if (settings.saveCurrentSettingsToMemory()) {
 				lastSavePreferencesMillis = millis();
 			} else {
 				LOGGER.println("Error in writing settings do preferences!");

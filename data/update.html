@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Upload OTA data</title>
+    <style type="text/css">
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            @import url("https://fonts.googleapis.com/css?family=Roboto:400,400i,700");
+            font-family: Roboto, sans-serif;
+            background: #555;
+            text-align: center;
+            min-width: 360px;
+        }
+
+        .button-send {
+            width: 100%;
+            border: 0;
+            background: #FFF;
+            line-height: 23px;
+            font-weight: bold;
+            color: #555;
+            border-radius: 4px;
+            box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .4), 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .button-send:hover {
+            background-color: #dedede;
+        }
+
+        .button-send:active {
+            background-color: #dedede;
+            box-shadow: 1px 1px #666;
+            transform: translateY(4px);
+        }
+
+        .button-send:disabled {
+            background-color: #9c9c9c;
+        }
+
+        .container {
+            padding-top: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .form-container {
+            min-width: 380px;
+        }
+
+        progress {
+            display: block;
+            /* default: inline-block */
+            width: 100%;
+            margin: 2em auto;
+            padding: 4px;
+            border: 0 none;
+            background: #444;
+            border-radius: 14px;
+            box-shadow: inset 0px 1px 1px rgba(0, 0, 0, 0.5), 0px 1px 0px rgba(255, 255, 255, 0.2);
+        }
+
+        progress::-moz-progress-bar {
+            border-radius: 12px;
+            background: #FFF;
+            box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4), 0 2px 5px 0px rgba(0, 0, 0, 0.3);
+        }
+
+        /* webkit */
+        @media screen and (-webkit-min-device-pixel-ratio:0) {
+            progress {
+                height: 25px;
+            }
+        }
+
+        progress::-webkit-progress-bar {
+            background: transparent;
+        }
+
+        progress::-webkit-progress-value {
+            border-radius: 12px;
+            background: #FFF;
+            box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4), 0 2px 5px 0px rgba(0, 0, 0, 0.3);
+        }
+
+        /* environnement styles */
+        h1 {
+            color: #eee;
+            font: 50px Helvetica, Arial, sans-serif;
+            text-shadow: 0px 1px black;
+            text-align: center;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .input-file {
+            width: 100%;
+            border: 0px transparent;
+            padding: 4px 4px 4px 4px;
+            margin-top: 20px;
+            margin-bottom: 0px;
+            border-radius: 7px;
+            background-color: rgb(255 255 255);
+        }
+
+        .additional-info {
+            color: white;
+            height: 57px;
+        }
+
+        @-webkit-keyframes progress-animation {
+            0% {
+                background-position: 100%;
+            }
+
+            100% {
+                background-position: 0;
+            }
+        }
+
+        @keyframes progress-animation {
+            0% {
+                background-position: 100%;
+            }
+
+            100% {
+                background-position: 0;
+            }
+        }
+
+        .tile-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        .title-image {
+            background-image: url("firmware-icon.png");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 40px;
+            width: 40px;
+            margin-right: 20px;
+        }
+
+ 
+        .button-o {
+            cursor: pointer;
+            height: 25px;
+            font-size: 15px;
+            background: none;
+            outline: none;
+            border: 1px solid rgba(0, 0, 0, 0.35);
+            width: 50%;
+            color: white;
+            background: black;
+        }
+
+        .button-o.selected {
+            background-color: white;
+            color: black;
+        }
+
+        .button-o.left {
+            border-radius: 14px 0px 0px 14px;
+            margin-right: -3px;
+        }
+
+        .button-o.right {
+            border-radius: 0px 14px 14px 0px;
+            margin-left: -3px;
+        }
+
+        #overlay {
+            position: fixed;
+            /* Sit on top of the page content */
+            display: none;
+            /* Hidden by default */
+            width: 100%;
+            /* Full width (cover the whole page) */
+            height: 100%;
+            /* Full height (cover the whole page) */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.06);
+            /* Black background with opacity */
+            z-index: 2;
+            /* Specify a stack order in case you're using a different order for other elements */
+            cursor: pointer;
+            /* Add a pointer on hover */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="overlay"></div>
+    <div class="tile-container">
+        <div class="title-image"></div>
+        <h1>OTA Update</h1>
+    </div>
+
+    <h3 class="additional-info">
+        <span id="DeviceDataPrj">ProjectName</span> (V<span id="DeviceDataVer">0.0.0</span>)
+        <p></p>
+        <span id="DeviceDataID">DeviceID</span> - <span id="DeviceDataHW">Hardware</span>
+    </h3>
+
+    <div class="container">
+        <form enctype="multipart/form-data" class="form-container" id="upload_form" method="post">
+            <div id="switch-container">
+                <button class="button-o left selected" id="firmware-button" type="button">Firmware</button>
+                <button class="button-o right" id="filesystem-button" type="button">FileSystem</button>
+            </div>
+            <input accept='.bin,.bin.gz' class="input-file" id="file1" name='firmware' type="file"><br>
+            <progress id="progressBar" max="100" value="0"></progress>
+            <div class="additional-info">
+                <h3 id="status">Firmware upload</h3>
+                <p id="loaded_n_total"></p>
+            </div>
+            <hr />
+            <button id="button-send" class="button-send" type="submit" disabled>Upload</button>
+        </form>
+
+    
+        <!-- Diese Datei herunterladen und als Quellcode einbinden oder als gepackte Datei im fileSystem -->
+<!--        <script src="https://cdn.bootcdn.net/ajax/libs/spark-md5/3.0.0/spark-md5.js"></script> -->
+        <script src="spark-md5.min.js"></script>
+
+
+        <script type="application/javascript">
+            // Original code unter:
+            // https://www.mischianti.org/2021/11/11/esp8266-ota-update-with-web-browser-custom-web-interface-3/
+
+
+            function stringToBoolean(string) {
+                switch (string.toLowerCase().trim()) {
+                    case "true": case "yes": case "1": return true;
+                    case "false": case "no": case "0": case null: return false;
+                    default: return Boolean(string);
+                }
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const onlyFirmware = urlParams.get('onlyFirmware');
+            if (onlyFirmware && stringToBoolean(onlyFirmware) === true) {
+                _('switch-container').style.display = 'none';
+            }
+
+
+
+            // function for Event if DOM is loaded (mounted() in Vue.js)
+            // show MAC ID and Controller-Type on OTA-Page
+            document.addEventListener("DOMContentLoaded", DOMContendIsLoaded);
+
+            var deviceData = {
+                id: null,
+                hardware: null,
+                version: null,
+                project: null
+            };
+
+            function DOMContendIsLoaded() {
+                //console.log('DOM is ready');
+                //if (process.env.NODE_ENV === 'production') {
+                    fetch('/update/identity').then(async (response) => {
+                        if (response.ok) {
+                            deviceData = await response.json();
+                            document.getElementById("DeviceDataID").innerText = deviceData.id;
+                            document.getElementById("DeviceDataHW").innerText = deviceData.hardware;
+                            document.getElementById("DeviceDataVer").innerText = deviceData.version;
+                            document.getElementById("DeviceDataPrj").innerText = deviceData.project;
+                        }
+                    });
+                //}
+            }
+
+
+
+
+            function disableAll() {
+                document.getElementById("overlay").style.display = "block";
+            }
+            function enableAll() {
+                document.getElementById("overlay").style.display = "none";
+            }
+            function _(el) {
+                return document.getElementById(el);
+            }
+
+            _('upload_form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                uploadFile();
+            });
+            _('firmware-button').addEventListener('click',
+                function (e) {
+                    e.target.classList.add('selected');
+                    _('filesystem-button').classList.remove('selected');
+                    _("file1").name = 'firmware';
+                }
+            )
+            _('filesystem-button').addEventListener('click',
+                function (e) {
+                    e.target.classList.add('selected');
+                    _('firmware-button').classList.remove('selected');
+                    _("file1").name = 'filesystem';
+                }
+            )
+            _('file1').addEventListener('change', function (e) {
+                var file = _("file1").files[0];
+                if (file && file.name) {
+                    _('button-send').disabled = false;
+                    _("progressBar").value = 0; //wil clear progress bar after successful upload
+                } else {
+                    _('button-send').disabled = true;
+                }
+                _('status').innerHTML = "Firmware Upload!";
+                _("loaded_n_total").innerHTML = "";
+            });
+
+
+            // zusammengemergedter Code von
+            // https://www.mischianti.org/2021/11/11/esp8266-ota-update-with-web-browser-custom-web-interface-3/
+            // und
+            // https://github.com/ayushsharma82/ElegantOTA/tree/master/ui/src
+
+            function completeHandler(event) {
+                enableAll();
+                _("status").innerHTML = 'Upload Success!'; //event.target.responseText;
+                _("progressBar").value = 0; //wil clear progress bar after successful upload
+                console.log("completeHandler");
+            }
+            function startHandler(event) {
+                disableAll();
+                console.log("startHandler");
+            }
+            function errorHandler(event) {
+                enableAll();
+                _("status").innerHTML = "Upload Failed!";
+                console.log("errorHandler");
+            }
+            function abortHandler(event) {
+                enableAll();
+                _("status").innerHTML = "Upload Aborted!";
+                console.log("abortHandler");
+            }
+            function timeoutHandler(event) {
+                enableAll();
+                _("status").innerHTML = "Timeout!";
+                console.log("timeoutHandler");
+            }
+
+
+            function progressHandler(event) {
+                if (event.lengthComputable) {
+                    _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total;
+                    var percent = Math.round((event.loaded / event.total) * 100);
+                    _("progressBar").value = percent;
+                    _("status").innerHTML = percent + "% uploaded... please wait";
+                }                
+                console.log("progressHandler: " + percent + "%");
+            }
+
+
+
+            function uploadFile() {
+                var updatefile = _("file1").files[0];
+                let updater = new NewOTA();
+                updater.uploadOTA(updatefile)
+            }
+
+
+            // abgeleitet von script von AsyncElegantOTA
+            class NewOTA {
+                // local Variables
+                loading = true;
+                uploading = false;
+                progress = 0;
+                OTAError =  null;
+                OTASuccess = false;
+                //type = 'firmware';
+                type = _("file1").name;             // 'firmware' or 'filesystem'
+                file = null;
+ 
+
+                fileMD5(file) {
+                    return new Promise((resolve, reject) => {
+                        const blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+                        const chunkSize = 2097152; // Read in chunks of 2MB
+                        const chunks = Math.ceil(file.size / chunkSize);
+                        const spark = new SparkMD5.ArrayBuffer();
+                        const fileReader = new FileReader();
+                        let currentChunk = 0;
+                        let loadNext;
+                        fileReader.onload = (e) => {
+                            spark.append(e.target.result); // Append array buffer
+                            currentChunk += 1;
+                            if (currentChunk < chunks) {
+                                loadNext();
+                            } else {
+                                const md5 = spark.end();
+                                resolve(md5);
+                            }
+                        };
+                        fileReader.onerror = (e) => {
+                            reject(e);
+                        };
+                        loadNext = () => {
+                            const start = currentChunk * chunkSize;
+                            const end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
+                            fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+                        };
+                        loadNext();
+                    });
+                }
+
+
+                uploadOTA(updatefile) {
+                    this.uploading = true;
+                    const formData = new FormData();
+                    if (updatefile !== null) {
+                        this.file = updatefile;
+                    }
+                    //console.log("uploadOTA " + this.file.name);
+
+                    const request = new XMLHttpRequest();
+/*                    request.addEventListener('load', () => {
+                        // request.response will hold the response from the server
+                        if (request.status === 200) {
+                            this.OTASuccess = true;
+                        } else if (request.status !== 500) {
+                            this.OTAError = `[HTTP ERROR] ${request.statusText}`;
+                        } else {
+                            this.OTAError = request.responseText;
+                        }
+                        this.uploading = false;
+                        this.progress = 0;
+                    });
+ */                   
+                    // Upload progress
+                    //request.upload.addEventListener("progress", progressHandler, false);
+
+
+                    request.upload.onprogress = function(event) {
+                        if (event.lengthComputable) {
+                            _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total;
+                            var percent = Math.round((event.loaded / event.total) * 100);
+                            _("progressBar").value = percent;
+                            //_("status").innerHTML = percent + "% uploaded... please wait";
+                            _("status").innerHTML = "Uploading " + percent + "% ... please wait";
+                        }
+                        console.log("progressHandler: " + percent + "%");
+                    };
+
+
+
+//                    request.upload.addEventListener("progress", this.progressHandler, false);
+ /*                   request.upload.addEventListener('progress', (e) => {
+                        this.progress = Math.trunc((e.loaded / e.total) * 100);
+                        console.log("Progress: " + this.progress);
+                    });
+*/
+                    request.addEventListener("load", completeHandler, false);
+                    request.addEventListener("loadstart", startHandler, false);
+                    request.addEventListener("error", errorHandler, false);
+                    request.addEventListener("abort", abortHandler, false);
+                    request.addEventListener("timeout", timeoutHandler, false);
+
+
+
+
+                    // TODO: Check if it works without credentials
+                    request.withCredentials = true;
+                    this.fileMD5(this.file)
+                        .then((md5) => {
+                            formData.append('MD5', md5);
+                            formData.append(this.type, this.file, this.type);             // Original code
+                            //formData.append(this.file.name, this.file, this.type);
+                            request.open('post', '/update');
+                            request.send(formData);
+                        })
+                        .catch(() => {
+                            this.OTAError = 'Unknown error while upload, check the console for details.';
+                            this.uploading = false;
+                            this.progress = 0;
+                        });
+                }
+
+/*
+                progressHandler(event) {
+                    if (event.lengthComputable) {
+                        _("loaded_n_total").innerHTML = "Uploaded " + event.loaded + " bytes of " + event.total;
+                        this.progress = Math.round((event.loaded / event.total) * 100);
+                        _("progressBar").value = this.progress;
+                        _("status").innerHTML = this.progress + "% uploaded... please wait";
+                    }
+                }
+  */
+                retryOTA() {
+                    this.OTAError = null;
+                    this.OTASuccess = false;
+                    this.uploadOTA(null);
+                }
+
+                clear() {
+                    this.OTAError = null;
+                    this.OTASuccess = false;
+                }
+
+
+
+
+            }
+
+        </script>
+    </div>
+</body>
+
+</html>
