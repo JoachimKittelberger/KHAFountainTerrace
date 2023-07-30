@@ -18,7 +18,7 @@
         #warning Use LITTLEFS only in projects with Firebeetle and weatherstation in /Users/CloudStation/Privat/Projekte/ESP32/libraries/KSLibraries/KSAutoUpdate/KSAutoUpdate.h
 	#else
 		#include <LittleFS.h>
-  		#define SPIFFS LittleFS        // TODO: we got an error if we use this. Don't know if we uncomment this again
+  		//#define SPIFFS LittleFS        // TODO: we got an error if we use this. Don't know if we uncomment this again
         //#warning Using LittleFS for current project
 	#endif
 #else
