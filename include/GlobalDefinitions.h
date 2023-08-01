@@ -67,6 +67,8 @@ typedef struct {
 } BrunnenData;
 
 
+void switchPowerOff();
+
 
 /*
 // JSON-Document für WebService und Kommunikation mit html-page und mqtt
