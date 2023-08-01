@@ -19,8 +19,8 @@
  *   + set default values to other values
  *   + Change Partition-Table with CSV (more size and OTA)
  *   + Use KSOTA
+ *   + put KSFileSystem in a class
  *
- *   - put KSFileSystem in a class
  *   - put Fontain and IO functions in separat Files/classes
  *   - Put lib in KSESPFramework
  *   - Use KSMQTTConnection
@@ -68,7 +68,11 @@
 #include "KSCredentials.h"			// global KSLibrariesCredentials: must bei copied from KSCredentials.h.tpl
 
 #include "KSUtilities.h"
+
 #include "KSFileSystem.h"
+KSFileSystemClass filesystem(LittleFS);
+
+
 #include "KSTelnetServer2.h"
 
 
@@ -114,11 +118,14 @@ const int SpeedControlPotiPin = 32;			// Nur zum Test fürs einlesen von Werten
 
 
 #ifdef ESP32
-#include <WiFi.h>
-#include <AsyncTCP.h>
+	#include <WiFi.h>
+	// next 2 lines are because auf WDT-Problems in async_tcp
+	#define CONFIG_ASYNC_TCP_RUNNING_CORE 1 // running on core1
+	#define CONFIG_ASYNC_TCP_USE_WDT 0		// disable WDT for async_tcp because of WDT-Problems with async_tcp on core1
+	#include <AsyncTCP.h>
 #elif defined(ESP8266)
-//#include <ESP8266WiFi.h>
-//#include <ESPAsyncTCP.h>
+	//#include <ESP8266WiFi.h>
+	//#include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
 AsyncWebServer server(80);
@@ -140,7 +147,7 @@ KSWiFiConnection wifi;
 KSNTPClient ntp;
 
 #include "KSFTPServer.h"
-KSFTPServer ftp;
+KSFTPServer ftp(LittleFS);
 
 
 #include "KSOTA.h"
@@ -872,7 +879,11 @@ void onOTAProgress(unsigned int progress, unsigned int total) {
 // TODO in loop()
 //rtc_wdt_feed(); // feed the Watchdog
 
-
+// other WDT-Functions
+//	disableCore0WDT();
+//	disableCore1WDT();
+//	enableCore0WDT();
+//	enableCore0WDT();
 
 
 void setup(){
@@ -968,23 +979,10 @@ void setup(){
 	//TaskHandle_t hMQTTConnection = mqtt.createConnection(&hEventGroupNetwork);
 	//mqtt.setOnSubscribedTopicListener(mqttTopicCMDOpenGarage, OnSubscribedCMDOpenGarage);
 
-
+	
     // Initialize file system
-    LOGGER.print("Initialize FS... ");
-    if (!KSFileSystem.begin(false)) { // Do not format if mount failed
-        LOGGER.print("failed... trying to format...");
-        if (!KSFileSystem.begin(true)) {
-            LOGGER.println("success");
-        } else {
-            LOGGER.println("failed");
-        }
-    } else {
-        LOGGER.println("done");
-    }
-	// TODO format all space in KSFileSystem for the first time
-    //KSFileSystem.format();
-   	listDir(KSFileSystem, "/", 3);
-
+	filesystem.init();
+	filesystem.listDir("/", 3);
 
 
 	//deleteSettingsFromMemory();		// Just for initialization of memory. Its available via telnet "Erase"
@@ -1006,22 +1004,34 @@ void setup(){
 	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
 //		request->send(KSFileSystem, "/index.html", "text/html");
-		request->send(KSFileSystem, "/index.html", "text/html", false, processor);
+//		request->send(KSFileSystem, "/index.html", "text/html", false, processor);
+		request->send(filesystem.getKSFileSystemRef(), "/index.html", "text/html", false, processor);
 	});
 
 	// handle the bootstrap-Files
 	server.on("/src/bootstrap.bundle.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-		request->send(KSFileSystem, "/src/bootstrap.bundle.min.js", "text/javascript");
+//		request->send(KSFileSystem, "/src/bootstrap.bundle.min.js", "text/javascript");
+		request->send(filesystem.getKSFileSystemRef(), "/src/bootstrap.bundle.min.js", "text/javascript");
 	});
 	server.on("/src/jquery-3.5.1.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-		request->send(KSFileSystem, "/src/jquery-3.5.1.min.js", "text/javascript");
+//		request->send(KSFileSystem, "/src/jquery-3.5.1.min.js", "text/javascript");
+		request->send(filesystem.getKSFileSystemRef(), "/src/jquery-3.5.1.min.js", "text/javascript");
 	});
 	server.on("/src/bootstrap.min.css", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-		request->send(KSFileSystem, "/src/bootstrap.min.css", "text/css");
+//		request->send(KSFileSystem, "/src/bootstrap.min.css", "text/css");
+		request->send(filesystem.getKSFileSystemRef(), "/src/bootstrap.min.css", "text/css");
 	});
+
+
+	server.on("/credentials.js", HTTP_GET, [](AsyncWebServerRequest *request){
+   		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
+//		request->send(KSFileSystem, "/credentials.js", "text/javascript");
+		request->send(filesystem.getKSFileSystemRef(), "/credentials.js", "text/javascript");
+	});
+
 
 	server.onNotFound(notFound);
 
@@ -1032,10 +1042,17 @@ void setup(){
 	wifi.waitForInit();		// TODO: Evtl. mit Zeit versehen oder komlett löschen
   	LOGGER.println("WiFi connection established");
 
-	// da wir ein Problem mit dem Watchdoc und AsyncTCP haben, wird hier der Watchdog voh Hand gesetzt und in der loop gefüttert
+/*
+	// da wir ein Problem mit dem Watchdoc und AsyncTCP auf cpu1 haben, wird hier der Watchdog voh Hand gesetzt und in der loop gefüttert
 	rtc_wdt_protect_off();    // Turns off the automatic wdt service
 	rtc_wdt_enable();         // Turn it on manually
 	rtc_wdt_set_time(RTC_WDT_STAGE0, 20000);  // Define how long you desire to let dog wait.
+
+//	disableCore0WDT();
+//	disableCore1WDT();
+//	enableCore0WDT();
+//	enableCore0WDT();
+*/
 }
 
 
@@ -1121,8 +1138,9 @@ void loop() {
 		ws.cleanupClients();
 	END_CYCLIC()
 
-
+/*
 	rtc_wdt_feed();			// feed Watchdog
+*/
 	vTaskDelay(pdMS_TO_TICKS(100));
 }
 

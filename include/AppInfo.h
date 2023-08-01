@@ -3,7 +3,7 @@
 
 
 
-const char SW_VERSION[] = "2.00.04";                // maximum 8 char
+const char SW_VERSION[] = "2.00.05";                // maximum 8 char
 const char PROJECT_NAME[] = "KHAFountainTerrace";           // maximum 21 char
 // könnte auch gemacht werden mit const char* SW_VERSION = "1.01.00";
 // könnte auch in platformio gemacht werden

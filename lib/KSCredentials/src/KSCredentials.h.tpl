@@ -47,6 +47,7 @@ const char updateServerIP[] = "192.168.1.3";
 const char updateUserName[] = "username";
 const char updateUserPassword[] = "password";
 
+const char autoUpdatePath[] = "http://192.168.1.20/AutoUpdate/binaries/";
 
 
 #define SMTP_HOST "smtp.strato.de"
