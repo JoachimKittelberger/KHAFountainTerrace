@@ -78,6 +78,7 @@
 KSFileSystemClass filesystem(LittleFS);
 
 #include "KSTelnetServer2.h"
+#include "Telnet.h"
 
 
 // WS2812B-LEDs
@@ -306,78 +307,6 @@ void notFound(AsyncWebServerRequest *request) {
 
 
 
-void onTelnetReadCommand(char* szCommand) {
-
-	if (strcasecmp(szCommand, "Info") == 0) {
-		LOGGER.printf("Project: %s Version: %s\n", PROJECT_NAME, SW_VERSION);
-		LOGGER.printf("Temperature: %.02f°C, Humidity: %.01f%%\n", temperature, humidity);
-
-		char * buffer = listESPStateJSON();
-		LOGGER.println(buffer);
-		free(buffer);
-	}
-	else if (strcasecmp(szCommand, "Erase") == 0) {
-		LOGGER.println("Erase all Data");
-		settings.deleteSettingsFromMemory();
-//		homeKit.EraseFlashData();
-	}
-	else if (strcasecmp(szCommand, "Save") == 0) {
-		LOGGER.print("Save Data ...");
-		if (settings.saveCurrentSettingsToMemory()) {
-			LOGGER.println(" Succeeded!");
-		} else {
-			LOGGER.println(" Error in Saving!");
-		}
-	}
-	else if (strcasecmp(szCommand, "Fontain On") == 0) {
-		LOGGER.println("Set Fontain On");
-		fontainObj.setFontainOn();
-		brunnenTerrace.fontain.isFontainOn = true;
-		settings.changed();
-	}
-	else if (strcasecmp(szCommand, "Fontain Off") == 0) {
-		LOGGER.println("Set Fontain Off");
-		fontainObj.setFontainOff();
-		brunnenTerrace.fontain.isFontainOn = false;
-		settings.changed();
-	}
-	else if (strStartsWith(szCommand, "Fontain Height")) {		// use: "Fontain Height=150"
-		// get String after "Fontain Height"
-		int height = -1;
-		char* pChar = strrchr(szCommand, '=');
-		if (pChar) {
-			if (strlen(pChar) > 2)
-				pChar++;		// go behind the '=' sign
-			height = atoi(pChar);
-		}
-		if (height > -1) {
-			fontainObj.setFontainHeight(height);
-			brunnenTerrace.fontain.height = height;
-			settings.changed();
-		}
-		LOGGER.printf("Set Fontain Height to %d\n", height);
-	}
-
-	else if (strcasecmp(szCommand, "SolarMode") == 0) {
-		LOGGER.println("Switch to Solar Mode");
-		fontainObj.switchToSolarMode();
-		brunnenTerrace.fontain.isSolarOn = true;
-		settings.changed();
-	}
-	else if (strcasecmp(szCommand, "PowerMode") == 0) {
-		LOGGER.println("Switch to Power Mode");
-		fontainObj.switchToPowerMode();
-		brunnenTerrace.fontain.isSolarOn = false;
-		settings.changed();
-	}
-	else {
-		LOGGER.printf("[telnet] Unkown command: %s\n", szCommand);
-	}
-}
-
-
-
-
 // callback function
 void onReset() {
   // is called before Reset of ESP32
@@ -385,8 +314,6 @@ void onReset() {
   Serial.flush();
   vTaskDelay(pdMS_TO_TICKS(100));
 }
-
-
 
 
 
