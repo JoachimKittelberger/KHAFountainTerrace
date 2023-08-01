@@ -126,12 +126,6 @@ FontainClass fontainObj;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-
-
-// we controll the power of the LEDs and Fontain with a shelly at 220V side
-#include "KSShelly.h"
-
-
 #include "KSEventGroupNetwork.h"
 EventGroupHandle_t hEventGroupNetwork = NULL;
 
@@ -161,19 +155,6 @@ BrunnenData brunnenTerrace;
 #define SAVE_SETTINGS_INTERVALL 5*60*1000		// save last settings all 5 min if something has changed
 Settings settings(&brunnenTerrace);
 
-
-
-// switch of the power via the shelly in the device
-void switchPowerOff() {
-	// Lights Terrasse Shelly off
-	
-	KSShelly shelly(ShellyIPTerrasseLEDs);
-	bool bLastState = shelly.setState(false, 0);
-	if (shelly.hasLastError()) {
-		LOGGER.printf("Error in Shelly set to false.\n");
-	}
-	LOGGER.printf("Shelly set to false. Last State was: %s\n", bLastState ? "true" : "false");
-}
 
 
 /*
