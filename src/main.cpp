@@ -20,8 +20,8 @@
  *   + Change Partition-Table with CSV (more size and OTA)
  *   + Use KSOTA
  *   + put KSFileSystem in a class
+ *   + put Fontain and IO functions in separat Files/classes
  *
- *   - put Fontain and IO functions in separat Files/classes
  *   - Put lib in KSESPFramework
  *   - Use KSMQTTConnection
  *   - Add FileHeaders to all files
@@ -76,12 +76,6 @@ KSFileSystemClass filesystem(LittleFS);
 #include "KSTelnetServer2.h"
 
 
-#include <driver/ledc.h>		// for PWM output ledc-functions
-// Pins for controlling motor PWM with own MOSEFT-Driver-Modul
-const int MotorPWMPin = 25;
-#define MOTORPWM_FREQ		5000
-#define LEDC_CHANNEL_MOTORPWM LEDC_CHANNEL_0
-
 
 // WS2812B-LEDs
 #include "KSWS2812B.h"
@@ -110,11 +104,8 @@ float humidity = 0;
 bool bTemperatureToHigh = false;
 
 
-// ModeRelais for switching between solar and power mode
-const int ModeRelais1Pin = 21;
-const int ModeRelais2Pin = 22;
-
-const int SpeedControlPotiPin = 32;			// Nur zum Test fürs einlesen von Werten
+#include "Fontain.h"
+FontainClass fontainObj;
 
 
 #ifdef ESP32
@@ -174,99 +165,6 @@ Settings settings(&brunnenTerrace);
 
 
 
-
-// ****************************************************************************
-// Functions for handling mode relais
-void initModeRelaisModul() {
-	pinMode(ModeRelais1Pin, OUTPUT);
-	pinMode(ModeRelais2Pin, OUTPUT);
-	switchToSolarMode();			// default is solar mode
-}
-
-
-void switchToSolarMode(bool bSolarMode) {
-    if (!bSolarMode) {
-        switchToPowerMode();
-	} else {
-		digitalWrite(ModeRelais1Pin, true);		// ausschalten
-		digitalWrite(ModeRelais2Pin, true);
-		brunnenTerrace.fontain.isSolarOn = true;
-		settings.changed();
-    }
-}
-
-
-void switchToPowerMode() {
-	digitalWrite(ModeRelais1Pin, false);	// einschalten
-	digitalWrite(ModeRelais2Pin, false);
-	brunnenTerrace.fontain.isSolarOn = false;
-	settings.changed();
-}
-
-
-bool isInSolarMode() {
-	if (digitalRead(ModeRelais1Pin) && digitalRead(ModeRelais2Pin))
-		return true;		// we are in Solar mode
-	return false;
-}
-// ****************************************************************************
-
-
-// ****************************************************************************
-// Functions for handling Power Mosfet fontain
-int lastFontainHeight = 0;
-
-void initFontain() {
-	pinMode(MotorPWMPin, OUTPUT);
-	digitalWrite(MotorPWMPin, false);
-	ledcSetup(LEDC_CHANNEL_MOTORPWM, MOTORPWM_FREQ, LEDC_TIMER_8_BIT);
-	ledcAttachPin(MotorPWMPin, LEDC_CHANNEL_MOTORPWM);
-	lastFontainHeight = 150;
-}
-
-
-void setFontainOn(bool bOn) {
-	if (bOn) {
-		ledcWrite(LEDC_CHANNEL_MOTORPWM, lastFontainHeight);
-		brunnenTerrace.fontain.isFontainOn = true;
-		settings.changed();
-	} else {
-		setFontainOff();
-	}
-}
-
-
-void setFontainOff() {
-	ledcWrite(LEDC_CHANNEL_MOTORPWM, 0);
-	brunnenTerrace.fontain.isFontainOn = false;
-	settings.changed();
-}
-
-
-bool isFontainOn() {
-	if (ledcRead(LEDC_CHANNEL_MOTORPWM) == 0) {
-		return false;
-	}
-	return true;
-}
-
-
-void setFontainHeight(int height) {        // maximum hight = 255. Minimum Hight = 150? Eventuell hier in % arbeiten
-	// set the velocity on MOSFET-Module
-	ledcWrite(LEDC_CHANNEL_MOTORPWM, height);
-	lastFontainHeight = height;
-	brunnenTerrace.fontain.height = height;
-	settings.changed();
-}
-
-
-int getFontainHeight() {
-	return lastFontainHeight;
-}
-
-// ****************************************************************************
-
-
 // switch of the power via the shelly in the device
 void switchPowerOff() {
 	// Lights Terrasse Shelly off
@@ -278,6 +176,7 @@ void switchPowerOff() {
 	}
 	LOGGER.printf("Shelly set to false. Last State was: %s\n", bLastState ? "true" : "false");
 }
+
 
 /*
 // callback function called from homespan
@@ -610,11 +509,17 @@ void handleJSONMessage(const char* data, size_t len) {
 				const char* fontain_solar = fontain["solar"]; // "on"
 				LOGGER.printf(" solar: %s", fontain_solar);
 				if (strcmp(fontain_solar, "on") == 0) {
-					if (!isInSolarMode())
-						switchToSolarMode();
+					if (!fontainObj.isInSolarMode()) {
+						fontainObj.switchToSolarMode();
+						brunnenTerrace.fontain.isSolarOn = true;
+						settings.changed();
+					}
 				} else if (strcmp(fontain_solar, "off") == 0) {
-					if (isInSolarMode())
-						switchToPowerMode();
+					if (fontainObj.isInSolarMode()) {
+						fontainObj.switchToPowerMode();
+						brunnenTerrace.fontain.isSolarOn = false;
+						settings.changed();
+					}
 				}
 			}
 
@@ -622,9 +527,13 @@ void handleJSONMessage(const char* data, size_t len) {
 				const char* fontain_mode = fontain["mode"]; // "on"
 				LOGGER.printf(" mode: %s", fontain_mode);
 				if (strcmp(fontain_mode, "on") == 0) {
-					setFontainOn();
+					fontainObj.setFontainOn();
+					brunnenTerrace.fontain.isFontainOn = true;
+					settings.changed();
 				} else if (strcmp(fontain_mode, "off") == 0) {
-					setFontainOff();
+					fontainObj.setFontainOff();
+					brunnenTerrace.fontain.isFontainOn = false;
+					settings.changed();
 				}
 			}
 
@@ -632,7 +541,9 @@ void handleJSONMessage(const char* data, size_t len) {
 				int fontain_height = fontain["height"]; // 150
 				fontain_height = constrain(fontain_height, 0, 255);
 				LOGGER.printf(" height: %d", fontain_height);
-				setFontainHeight(fontain_height);
+				fontainObj.setFontainHeight(fontain_height);
+				brunnenTerrace.fontain.height = fontain_height;
+				settings.changed();
 			}
 			LOGGER.println();
 		}
@@ -807,11 +718,15 @@ void onTelnetReadCommand(char* szCommand) {
 	}
 	else if (strcasecmp(szCommand, "Fontain On") == 0) {
 		LOGGER.println("Set Fontain On");
-		setFontainOn();
+		fontainObj.setFontainOn();
+		brunnenTerrace.fontain.isFontainOn = true;
+		settings.changed();
 	}
 	else if (strcasecmp(szCommand, "Fontain Off") == 0) {
 		LOGGER.println("Set Fontain Off");
-		setFontainOff();
+		fontainObj.setFontainOff();
+		brunnenTerrace.fontain.isFontainOn = false;
+		settings.changed();
 	}
 	else if (strStartsWith(szCommand, "Fontain Height")) {		// use: "Fontain Height=150"
 		// get String after "Fontain Height"
@@ -822,18 +737,25 @@ void onTelnetReadCommand(char* szCommand) {
 				pChar++;		// go behind the '=' sign
 			height = atoi(pChar);
 		}
-		if (height > -1)
-			setFontainHeight(height);
+		if (height > -1) {
+			fontainObj.setFontainHeight(height);
+			brunnenTerrace.fontain.height = height;
+			settings.changed();
+		}
 		LOGGER.printf("Set Fontain Height to %d\n", height);
 	}
 
 	else if (strcasecmp(szCommand, "SolarMode") == 0) {
 		LOGGER.println("Switch to Solar Mode");
-		switchToSolarMode();
+		fontainObj.switchToSolarMode();
+		brunnenTerrace.fontain.isSolarOn = true;
+		settings.changed();
 	}
 	else if (strcasecmp(szCommand, "PowerMode") == 0) {
 		LOGGER.println("Switch to Power Mode");
-		switchToPowerMode();
+		fontainObj.switchToPowerMode();
+		brunnenTerrace.fontain.isSolarOn = false;
+		settings.changed();
 	}
 	else {
 		LOGGER.printf("[telnet] Unkown command: %s\n", szCommand);
@@ -887,14 +809,10 @@ void onOTAProgress(unsigned int progress, unsigned int total) {
 
 
 void setup(){
- 	initModeRelaisModul();
-
-	// Analog-Input for Poti on Pin 26
-	pinMode(SpeedControlPotiPin, INPUT);
-
 	// init own MOSFET-Modul
-	initFontain();
-	setFontainOff();
+	fontainObj.init();
+	fontainObj.setFontainOff();
+	brunnenTerrace.fontain.isFontainOn = false;
 
 	// Serial port for debugging purposes
 	Serial.begin(115200);
@@ -911,14 +829,12 @@ void setup(){
 	Wire.begin(SDAPin, SCLPin);
 	bme280.init();			// setup BME280
 
-
 	TaskHandle_t hLightsBrunnen = lightsBrunnen.create();
 	TaskHandle_t hLightsStufe = lightsStufe.create();
 	TaskHandle_t hLightsRing = lightsRing.create();
 
 //	resetController.setOnResetListener(onReset);
 //	resetController.create();
-
 
 	// create EventGroup for Network-Handling
   	hEventGroupNetwork = xEventGroupCreate();
@@ -1067,7 +983,7 @@ void loop() {
 	//int mapValue = potiValue;   // we use 12 Bit PWM out
 
 	// set the velocity on MOSFET-Module
-	//setFontainHeight(mapValue);
+	//fontainObj.setFontainHeight(mapValue);
 
 	//lightsBrunnen.setBrightness((uint8_t)mapValue);
 	//lightsBrunnen.setLightEffect(LightEffect::LERainbow);
