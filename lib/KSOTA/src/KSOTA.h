@@ -98,7 +98,7 @@ class KSOTA {
         }
         void begin();
 
-        void forceHttpUpdate(String filename);
+        void forceHttpUpdate(String path, String filename);
 
         // disable DeepSleep during OTA-Update
         void setDeepSleepHandler(KSDeepSleep* pDeepSleepHandler) { _pDeepSleepHandler = pDeepSleepHandler; }
@@ -138,7 +138,7 @@ class KSOTA {
         String _swVersion = "0.0.0";
         bool _authRequired = false;
 
-        esp32FOTA _esp32fota;
+        static esp32FOTA _esp32fota;                // need to define this static because of use in lamda functions
         KSDeepSleep* _pDeepSleepHandler = NULL;
 };
 

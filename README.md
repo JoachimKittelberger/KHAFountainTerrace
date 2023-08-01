@@ -1,5 +1,7 @@
 # Project KHAFountainTerrace
+Das Projekt KHAFountionTerrace steuert einen Solar-Brunnen sowie einen LED-Ring um diesen Brunnen und um das gesamte Brunnengefäß. Zusätzlich wird ein weiterer LED-Streifen angesteuert, der die Treppenstufen der Terrasse beleuchtet.
 
+----
 ## Anpassungen im Quellcode des Projekts
 Um das Projekt sauber zu compilieren müssen die IP-Adressen und die WLAN-Einstellungen angepasst werden
 1.	Datei include/AppCredentials.h.tpl in include/AppCredentials.h umbenennen und die Einstellungen in der Datei anpassen
@@ -11,21 +13,22 @@ Um das Projekt sauber zu compilieren müssen die IP-Adressen und die WLAN-Einste
 5. In der Datei esp32FOTA.hpp der verwendeten Bibliothtke esp32FOTA muss die Reihenfolge der Erkennung angepasst werden, damit diese Bibliothek mit LittelFS funktioniert.
 Hier muss zuerst LittleFS und dann erst SPIFFS geprüft werden, da SPIFFS.h wohl von einer anderen Lib includiert wird und deshalb immer zuerst erkannt wird
 ----
-
+```cpp
 	// Changed: Swap the detection. First LittleFS and then SPIFFS
 	// inherit includes from sketch, detect SPIFFS first for legacy support
 	#if __has_include(<LittleFS.h>) || defined _LiffleFS_H_
 		#if !defined(DISABLE_ALL_LIBRARY_WARNINGS)
-		#pragma message "Using LittleFS for certificate validation"
+			#pragma message "Using LittleFS for certificate validation"
 		#endif
 		#include <LittleFS.h>
 		#define FOTA_FS &LittleFS
 	#elif __has_include(<SPIFFS.h>) || defined _SPIFFS_H_
 		#if !defined(DISABLE_ALL_LIBRARY_WARNINGS)
-		#pragma message "Using SPIFFS for certificate validation"
+			#pragma message "Using SPIFFS for certificate validation"
 		#endif
 		#include <SPIFFS.h>
 		#define FOTA_FS &SPIFFS
 	#elif __has_include(<SD.h>) || defined _SD_H_
-
+	
+```
 

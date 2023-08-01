@@ -40,10 +40,14 @@
 #include "KSLogger.h"
 
 
+// need to define this static because of use in lamda functions
+esp32FOTA KSOTA::_esp32fota("esp32-fota-http", 1, false);
+
+
 
 KSOTA::KSOTA(const char *hostname, KSLiquidCrystal_I2C* pLCD, AsyncWebServer* pServer)
-    : _esp32fota("esp32-fota-http", 1, false)
-        , _cb_start(NULL)
+//    : _esp32fota("esp32-fota-http", 1, false)
+       : _cb_start(NULL)
         , _cb_end(NULL)
         , _cb_error(NULL)
         , _cb_progress(NULL)
@@ -60,6 +64,7 @@ KSOTA::KSOTA(const char *hostname, KSLiquidCrystal_I2C* pLCD, AsyncWebServer* pS
 
 KSOTA::~KSOTA() {
 }
+
 
 
 // Callbacks for user
@@ -82,8 +87,6 @@ KSOTA& KSOTA::setOnErrorListener(ArduinoOTAClass::THandlerFunction_Error fn) {
     _cb_error = fn;
     return *this;
 }
-
-
 
 
 
@@ -135,7 +138,6 @@ void KSOTA::tKSOTA()
 	// main loop ota
     for (;;) {
 
-
         // Warte auf Wifi-Verbindung und Initialisierung:
         // Wenn Connection-Bit noch nicht gesetzt, dann das erste Mal warten.
         if (_phEventGroupNetwork && (*_phEventGroupNetwork != NULL)) {
@@ -152,10 +154,6 @@ void KSOTA::tKSOTA()
 		vTaskDelay(pdMS_TO_TICKS(500));
 	}
 }
-
-
-
-
 
 
 
@@ -197,8 +195,6 @@ void KSOTA::setupOTA() {
 
 
 
-
-
 void KSOTA::_onStart() {   // do something before OTA Update
     if (_pLCD) {
 	    if (_pLCD->_pcsI2C) _pLCD->_pcsI2C->EnterCriticalSection();
@@ -217,8 +213,8 @@ void KSOTA::_onStart() {   // do something before OTA Update
     if (_pDeepSleepHandler) {
         _pDeepSleepHandler->setOTAActive(true);
     }
-    
 }
+
 
 
 void KSOTA::_onEnd() {                         // do something after OTA Update
@@ -242,6 +238,7 @@ void KSOTA::_onEnd() {                         // do something after OTA Update
 }
 
 
+
 void KSOTA::_onProgress(unsigned int progress, unsigned int total) {                         // do something before OTA Update
     unsigned int percentage = progress / (total / 100);
     if (_pLCD) {
@@ -260,6 +257,7 @@ void KSOTA::_onProgress(unsigned int progress, unsigned int total) {            
         _cb_progress(progress, total);
     }
 }
+
 
 
 void KSOTA::_onError(ota_error_t error) {
@@ -316,7 +314,8 @@ void KSOTA::begin() {
 
             // benutzter Quellcode der Oberfläche von
             // https://www.mischianti.org/2021/11/11/esp8266-ota-update-with-web-browser-custom-web-interface-3/
-		    request->send(KSFileSystem, "/update.html", "text/html");
+		    request->send(*(_esp32fota.getFotaFS()), "/update.html", "text/html");
+//		    request->send(KSFileSystem, "/update.html", "text/html");
 
         });
 
@@ -402,7 +401,9 @@ void KSOTA::begin() {
 //                    return request->requestAuthentication();
 //                }
 //            }
-		    request->send(KSFileSystem, "/firmware-icon.png", "image/png");
+
+		    request->send(*(_esp32fota.getFotaFS()), "/firmware-icon.png", "image/png");
+//		    request->send(KSFileSystem, "/firmware-icon.png", "image/png");
         });
 
         // handle the spark-md5.min.js
@@ -412,12 +413,9 @@ void KSOTA::begin() {
 //                    return request->requestAuthentication();
 //                }
 //            }
-            request->send(KSFileSystem, "/spark-md5.min.js", "text/javascript");
+            request->send(*(_esp32fota.getFotaFS()), "/spark-md5.min.js", "text/javascript");
+//            request->send(KSFileSystem, "/spark-md5.min.js", "text/javascript");
         });
-
-
-
-
 
     }
 }
@@ -438,11 +436,8 @@ String KSOTA::getID() {
 
 
 
-
-
-void KSOTA::forceHttpUpdate(String filename) {
-
- 	String pathname = "http://192.168.30.220/KSAutoUpdate/binaries/" + filename;
+void KSOTA::forceHttpUpdate(String path, String filename) {
+    String pathname = path + filename;      // autoUpdatePath + filename
 
     _esp32fota.setProgressCb(_cb_progress);
     _esp32fota.forceUpdate(pathname.c_str(), false); // check signature: true

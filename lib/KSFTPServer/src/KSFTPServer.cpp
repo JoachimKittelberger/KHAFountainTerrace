@@ -35,19 +35,14 @@
 #include "KSFTPServer.h"
 #include "KSEventGroupNetwork.h"
 
-#include "KSFileSystem.h"
-
-//extern const char ftpUserName[];
-//extern const char ftpUserPassword[];
 
 
-KSFTPServer::KSFTPServer() : ftpSrv(KSFileSystem) {
+KSFTPServer::KSFTPServer(fs::FS& filesystem) : _ftpSrv(filesystem) {
 }
 
 
 KSFTPServer::~KSFTPServer() {
 }
-
 
 
 
@@ -78,7 +73,6 @@ TaskHandle_t KSFTPServer::createConnection(EventGroupHandle_t *phEventGroupNetwo
 
 
 
-
 void KSFTPServer::tKSFTPServer()
 {
     // Warte auf Wifi-Verbindung und Initialisierung:
@@ -93,8 +87,8 @@ void KSFTPServer::tKSFTPServer()
     }
             
     // erst hier machen, da sonst Absturz. Vermutlich wegen Wifi noch nicht initialisiert.
-    //ftpSrv.begin(ftpUserName, ftpUserPassword);
-    ftpSrv.begin(_pUsername, _pPassword);
+    //_ftpSrv.begin(ftpUserName, ftpUserPassword);
+    _ftpSrv.begin(_pUsername, _pPassword);
 	
 	// main loop ftp
     for (;;) {
@@ -110,7 +104,7 @@ void KSFTPServer::tKSFTPServer()
             }
         }
 
-        ftpSrv.handleFTP();
+        _ftpSrv.handleFTP();
 		vTaskDelay(pdMS_TO_TICKS(500));
 	}
 }

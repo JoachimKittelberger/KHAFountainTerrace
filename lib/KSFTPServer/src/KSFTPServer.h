@@ -41,10 +41,12 @@
 
 #include <FTPServer.h>
 
+#include "KSFileSystem.h"
+
 
 class KSFTPServer {
     public:
-        KSFTPServer();
+        KSFTPServer(fs::FS& filesystem = LittleFS);
         ~KSFTPServer();
 
         TaskHandle_t createConnection(EventGroupHandle_t *phEventGroupNetwork = NULL);
@@ -53,14 +55,13 @@ class KSFTPServer {
     private:
         void tKSFTPServer();
 
-        FTPServer ftpSrv;
+        FTPServer _ftpSrv;
 
         TaskHandle_t _htKSFTPServer;
         EventGroupHandle_t *_phEventGroupNetwork = NULL;
 
         char* _pUsername = NULL;
         char* _pPassword = NULL;
-
 };
 
 
