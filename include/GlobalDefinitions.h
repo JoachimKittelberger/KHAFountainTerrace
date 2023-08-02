@@ -40,6 +40,7 @@
 
 #include "KSWS2812B.h"
 
+
 typedef struct {
     bool isOn = false;              // LED on or off
     int brightness = 100;           // 0 .. 255
@@ -54,8 +55,8 @@ typedef struct {
     bool isSolarOn = true;         // Solar on or off
     bool isFontainOn = false;       // Fontain on or off
     int height = 0;      // Height of fontain 0 .. 255
-
 } Fontain;
+
 
 
 typedef struct {
@@ -92,21 +93,6 @@ typedef struct {
 }
 */
 
-
-
-
-
-void initModeRelaisModul();
-void switchToSolarMode(bool bSolarMode = true);
-void switchToPowerMode();
-bool isInSolarMode();
-
-void initFontain();
-void setFontainOn(bool bOn = true);
-void setFontainOff();
-bool isFontainOn();
-void setFontainHeight(int height = 255);        // maximum hight = 255. Minimum Hight = 150? Eventuell hier in % arbeiten
-int getFontainHeight();
 
 
 
