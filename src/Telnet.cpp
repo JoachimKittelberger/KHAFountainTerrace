@@ -35,11 +35,12 @@
 #include "Telnet.h"
 
 #include "GlobalDefinitions.h"
-#include "KSLogger.h"
+
+#include "KSESPFrameworkSettings.h"
+
 #include "Fontain.h"
 #include "Settings.h"
 #include "JSONMessage.h"
-#include "KSUtilities.h"
 #include "AppInfo.h"
 
 

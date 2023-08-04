@@ -36,7 +36,6 @@
 #define _SETTINGS_H
 
 #include "GlobalDefinitions.h"
-#include "KSPreferences.h"			// wird nur benötigt, wenn in eigener Datei ausgelagert
 
 
 #define PREFKEY_FOUNTAIN_TERRACE "fountainterrace"

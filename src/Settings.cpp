@@ -35,8 +35,10 @@
 #include "Settings.h"
 
 
-Settings::Settings(BrunnenData* pBrunnen) : _pBrunnen(pBrunnen) {
+#include "KSESPFrameworkSettings.h"
 
+
+Settings::Settings(BrunnenData* pBrunnen) : _pBrunnen(pBrunnen) {
 }
 
 

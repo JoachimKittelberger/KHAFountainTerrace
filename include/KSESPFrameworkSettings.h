@@ -1,19 +1,18 @@
 /**
- * @file KSShelly.h
+ * @file KSESPFramworkSettings.h
  * 
- * @brief controll shelly
+ * @brief Header file for Configuration of KSESPFramework
  * 
  * @details 
  * 
  * @see
  * 
  * @author Joachim Kittelberger <jkittelberger@kibesoft.de>
- * @date 30.04.2022
+ * @date 20.06.2022
  * @version 1.00
  *
  * @todo
  *
- * @bug
  */
 
 /**
@@ -33,38 +32,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef _KSSHELLY_H
-#define _KSSHELLY_H
-
-
-#include "Arduino.h"
-
-
-class KSShelly {
-    public:
-        KSShelly(const char* shellyName) {
-            _shellyName = shellyName;
-        }
-        KSShelly(String shellyName) {
-            _shellyName = shellyName;
-        }
-        virtual ~KSShelly() {}
-
-        bool setState(bool bOn = true, int id = 0);
-        bool hasLastError() { return bLastError; }
-
-
-    protected:
-        String httpGETRequest(const char* requestURL);
-
-    private:
-        String _shellyName = "";
-        bool bLastError = false;
-};
+#ifndef _KSESPFRAMEWORK_SETTINGS_H
+#define _KSESPFRAMEWORK_SETTINGS_H
 
 
 
 
 
-#endif  // #define _KSSHELLY_H
+#define KSLIBRARIES_USEALL 1
+
+/*
+#define USE_KSBME280 1
+#define USE_KSCREDENTIALS 1
+#define USE_KSCRITICALSECTION 1
+#define USE_KSDEEPSLEEP 1
+#define USE_KSEVENTGROUPNETWORK 1
+#define USE_KSFILESYSTEM 1
+#define USE_KSFTPSERVER 1
+#define USE_KSINTERFACES 1
+#define USE_KSLIQUIDCRYSTAL_I2C 1
+#define USE_KSLOGGER 1
+#define USE_KSNTPCLIENT 1
+#define USE_KSOTA 1
+#define USE_KSPREFERENCES 1
+#define USE_KSRESETCONTROLLER 1
+#define USE_KSRTC 1
+#define USE_KSSHELLY 1
+#define USE_KSTELNETSERVER2 1
+#define USE_KSUTILITIES 1
+#define USE_KSWIFICONNECTION 1
+#define USE_KSWS2812B 1
+*/
+
+#include "KSESPFramework.h"
+
+
+
+
+#endif          // #define _KSESPFRAMEWORK_SETTINGS_H

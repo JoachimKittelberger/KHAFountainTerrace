@@ -34,9 +34,8 @@
  */
 #include "Shelly.h"
 
-#include "KSShelly.h"
+#include "KSESPFrameworkSettings.h"
 #include "AppCredentials.h"
-#include "KSLogger.h"
 
 
 

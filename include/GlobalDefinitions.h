@@ -37,8 +37,7 @@
 // evtl sinnvolle DSL APIs
 
 #include <Arduino.h>
-
-#include "KSWS2812B.h"
+#include "KSESPFrameworkSettings.h"
 
 
 typedef struct {

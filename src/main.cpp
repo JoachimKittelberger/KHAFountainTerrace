@@ -51,7 +51,7 @@
 //#define LOG_SERIAL
 //#define LOG_TELNET
 #define LOG_SERIAL_AND_TELNET
-#include "KSLogger.h"
+//#include "KSLogger.h"
 //#define LOGGER Serial		// TODO
 //#define LOG_LEVEL LOG_LEVEL_TRACE
 //#define LOG_LEVEL LOG_LEVEL_DEBUG
@@ -66,23 +66,23 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+
+#include "KSESPFrameworkSettings.h"
+#include "KSCredentials.h"
+
+
 #include "AppInfo.h"
 #include "AppCredentials.h"			// global App Credentials: must be copied from AppCredentials.h.tpl
-#include "KSCredentials.h"			// global KSLibrariesCredentials: must bei copied from KSCredentials.h.tpl
-
-#include "KSUtilities.h"
+//#include "KSCredentials.h"			// global KSLibrariesCredentials: must bei copied from KSCredentials.h.tpl
 
 #include "JSONMessage.h"
 
-#include "KSFileSystem.h"
 KSFileSystemClass filesystem(LittleFS);
 
-#include "KSTelnetServer2.h"
 #include "Telnet.h"
 
 
 // WS2812B-LEDs
-#include "KSWS2812B.h"
 const int NeopixelPinBrunnen = 14;
 #define NUMPIXELSBRUNNEN 84			// LEDs of Brunnen
 KSWS2812B lightsBrunnen(NUMPIXELSBRUNNEN, NeopixelPinBrunnen);
@@ -97,7 +97,6 @@ KSWS2812B lightsRing(NUMPIXELSRING, NeopixelPinRing);
 
 
 // Temperature in housing
-#include "KSBME280.h"
 #define READ_TEMPERATURE_INTERVALL 1*60*1000	// read temperature every 1 min
 #define KSBME280_ADDRESS 0x76
 const int SDAPin = 18;
@@ -126,20 +125,12 @@ FontainClass fontainObj;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-#include "KSEventGroupNetwork.h"
 EventGroupHandle_t hEventGroupNetwork = NULL;
-
-#include "KSWiFiConnection.h"
-KSWiFiConnection wifi;
-
-#include "KSNTPClient.h"
+KSWiFiConnection wifi(wifi_ssid, wifi_password);
 KSNTPClient ntp;
 
-#include "KSFTPServer.h"
 KSFTPServer ftp(LittleFS);
 
-
-#include "KSOTA.h"
 KSOTA ota(PROJECT_NAME, NULL, &server);				// Enable OTA
 
 

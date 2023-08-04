@@ -32,10 +32,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "KSESPFrameworkSettings.h"
+
 #include "JSONMessage.h"
 #include "GlobalDefinitions.h"
-#include "KSLogger.h"
-#include "KSWS2812B.h"
+
 #include "Fontain.h"
 #include "Settings.h"
 #include "Shelly.h"		// we controll the power of the LEDs and Fontain with a shelly at 220V side
