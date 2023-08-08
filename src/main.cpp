@@ -31,27 +31,34 @@
 
 /**
  * @copyright
- * Copyright (C) 2022, KibeSoft - Joachim Kittelberger, (https://www.kibesoft.de)
- * All rights reserved
+ * MIT License
+ *
+ * Copyright (c) 2023 Joachim Kittelberger - KibeSoft, www.kibesoft.de
  * 
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  * 
- *     https://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 
 //#define LOG_SERIAL
 //#define LOG_TELNET
 #define LOG_SERIAL_AND_TELNET
-#include "KSLogger.h"
+//#include "KSLogger.h"
 //#define LOGGER Serial		// TODO
 //#define LOG_LEVEL LOG_LEVEL_TRACE
 //#define LOG_LEVEL LOG_LEVEL_DEBUG
@@ -66,23 +73,24 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+// Einbindung KSESPFramework
+//#include "KSESPFrameworkSettings.h"		// funktioniert nicht. Wir müssen die platformio.ini-Settings dazu nutzen
+#include "KSESPFramework.h"
+#include "../../../ESP32/KSESPLibraries/KSESPFramework/include/KSCredentials.h"			 // use global version of credentials
+//#include "myCredentials.h"             // use local version of credentials. must bei copied from KSCredentials.h.tpl
+
+
 #include "AppInfo.h"
 #include "AppCredentials.h"			// global App Credentials: must be copied from AppCredentials.h.tpl
-#include "KSCredentials.h"			// global KSLibrariesCredentials: must bei copied from KSCredentials.h.tpl
-
-#include "KSUtilities.h"
 
 #include "JSONMessage.h"
 
-#include "KSFileSystem.h"
 KSFileSystemClass filesystem(LittleFS);
 
-#include "KSTelnetServer2.h"
 #include "Telnet.h"
 
 
 // WS2812B-LEDs
-#include "KSWS2812B.h"
 const int NeopixelPinBrunnen = 14;
 #define NUMPIXELSBRUNNEN 84			// LEDs of Brunnen
 KSWS2812B lightsBrunnen(NUMPIXELSBRUNNEN, NeopixelPinBrunnen);
@@ -97,7 +105,6 @@ KSWS2812B lightsRing(NUMPIXELSRING, NeopixelPinRing);
 
 
 // Temperature in housing
-#include "KSBME280.h"
 #define READ_TEMPERATURE_INTERVALL 1*60*1000	// read temperature every 1 min
 #define KSBME280_ADDRESS 0x76
 const int SDAPin = 18;
@@ -126,20 +133,12 @@ FontainClass fontainObj;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-#include "KSEventGroupNetwork.h"
 EventGroupHandle_t hEventGroupNetwork = NULL;
-
-#include "KSWiFiConnection.h"
-KSWiFiConnection wifi;
-
-#include "KSNTPClient.h"
+KSWiFiConnection wifi(wifi_ssid, wifi_password);
 KSNTPClient ntp;
 
-#include "KSFTPServer.h"
 KSFTPServer ftp(LittleFS);
 
-
-#include "KSOTA.h"
 KSOTA ota(PROJECT_NAME, NULL, &server);				// Enable OTA
 
 

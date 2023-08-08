@@ -32,3 +32,6 @@ Hier muss zuerst LittleFS und dann erst SPIFFS geprüft werden, da SPIFFS.h wohl
 	
 ```
 
+## License
+
+MIT - Joachim Kittelberger - KibeSoft, [www.kibesoft.de](https://www.kibesoft.de)
