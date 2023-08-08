@@ -43,7 +43,7 @@
 #define _TELNET_H
 
 #include <Arduino.h>
-
+#include "AppInfo.h"
 
 void onTelnetReadCommand(char* szCommand);
 

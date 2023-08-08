@@ -47,7 +47,7 @@
 #include "Fontain.h"
 #include "Settings.h"
 #include "JSONMessage.h"
-#include "AppInfo.h"
+
 
 
 extern float temperature;
