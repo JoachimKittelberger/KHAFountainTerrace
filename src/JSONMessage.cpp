@@ -393,6 +393,7 @@ void handleJSONMessage(const char* data, size_t len) {
 				const char* cmd_power = cmd["power"]; // "on"
 				LOGGER.printf(" power: %s", cmd_power);
 				if (strcmp(cmd_power, "off") == 0) {
+					settings.saveCurrentSettingsToMemoryIfChanged();
 					switchPowerOff();
 				}
 			}

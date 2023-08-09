@@ -20,10 +20,10 @@
  *   + Use KSOTA
  *   + put KSFileSystem in a class
  *   + put Fontain and IO functions in separat Files/classes
+ *   + put lib in KSESPFramework
+ *   + Add FileHeaders to all files
  *
- *   - Put lib in KSESPFramework
  *   - Use KSMQTTConnection
- *   - Add FileHeaders to all files
  *   - add more effects (see links in KSWS2812B.h in todo-section)
  *
  * @bug
@@ -55,15 +55,8 @@
  */
 
 
-//#define LOG_SERIAL
-//#define LOG_TELNET
-#define LOG_SERIAL_AND_TELNET
-//#include "KSLogger.h"
-//#define LOGGER Serial		// TODO
-//#define LOG_LEVEL LOG_LEVEL_TRACE
-//#define LOG_LEVEL LOG_LEVEL_DEBUG
-
-
+//#define LOG_SERIAL_AND_TELNET			// we have todo this in platform.ini
+// we have todo this in platform.ini?
 #define MQTT_MAX_SUBSCRIPTIONS 3
 
 // just for Test use local access point and not home network
@@ -122,8 +115,8 @@ FontainClass fontainObj;
 #ifdef ESP32
 	#include <WiFi.h>
 	// next 2 lines are because auf WDT-Problems in async_tcp
-	#define CONFIG_ASYNC_TCP_RUNNING_CORE 1 // running on core1
-	#define CONFIG_ASYNC_TCP_USE_WDT 0		// disable WDT for async_tcp because of WDT-Problems with async_tcp on core1
+//	#define CONFIG_ASYNC_TCP_RUNNING_CORE 1 // running on core1
+//	#define CONFIG_ASYNC_TCP_USE_WDT 0		// disable WDT for async_tcp because of WDT-Problems with async_tcp on core1
 	#include <AsyncTCP.h>
 #elif defined(ESP8266)
 	//#include <ESP8266WiFi.h>
@@ -160,7 +153,7 @@ Settings settings(&brunnenTerrace);
 // callback function called from homespan
 // muss anstatt WiFiConnection verwendet werden
 void onWifiEstablished(){
-	Serial.print("wifiEstablished: IN CALLBACK FUNCTION\n\n");
+	LOGGER.print("wifiEstablished: IN CALLBACK FUNCTION\n\n");
 
 	// ab hier Event, dass Wifi initialisiert ist. Sonst stürzt WiFi ab, wenn mqtt zu schnell darauf zugreift
 	if (hEventGroupNetwork) {
@@ -290,8 +283,8 @@ void notFound(AsyncWebServerRequest *request) {
 // callback function
 void onReset() {
   // is called before Reset of ESP32
-  Serial.println("Reseting ESP32 ...");
-  Serial.flush();
+  LOGGER.println("Reseting ESP32 ...");
+  LOGGER.flush();
   vTaskDelay(pdMS_TO_TICKS(100));
 }
 
@@ -329,21 +322,14 @@ void onOTAProgress(unsigned int progress, unsigned int total) {
 
 
 void setup(){
+	// Serial port for debugging purposes
+	LOGGER.init();
+  	//vTaskDelay(pdMS_TO_TICKS(500));  // let USB an chance to connect to serial
+
 	// init own MOSFET-Modul
 	fontainObj.init();
 	fontainObj.setFontainOff();
 	brunnenTerrace.fontain.isFontainOn = false;
-
-	// Serial port for debugging purposes
-	Serial.begin(115200);
-#if ARDUINO_USB_CDC_ON_BOOT
-    Serial.setTxTimeoutMs(0);
-    vTaskDelay(pdMS_TO_TICKS(100));
-#else
-    while (!Serial)
-        yield();
-#endif
-  	//vTaskDelay(pdMS_TO_TICKS(500));  // let USB an chance to connect to serial
 
 	// init I2C and bme280-sensor
 	Wire.begin(SDAPin, SCLPin);
@@ -362,7 +348,7 @@ void setup(){
 
 #ifdef USE_LOCAL_AP
 	// create own access point
-	Serial.print("Creating SoftAP ... ");
+	LOGGER.print("Creating SoftAP ... ");
 	WiFi.mode(WIFI_AP);
 
 	IPAddress ipAddr;
@@ -374,17 +360,17 @@ void setup(){
 
 	WiFi.softAPConfig(ipAddr, gateway, subnet);
 	WiFi.softAP(wifi_ssid, wifi_password);
-	Serial.println(WiFi.softAPIP());
+	LOGGER.println(WiFi.softAPIP());
 
 	// hier die Einstellungen für hEventGroupNetwork setzen
 	if ((xEventGroupGetBits(hEventGroupNetwork) & EG_NETWORK_INITIALIZED) == 0) {
 		xEventGroupSetBits(hEventGroupNetwork, EG_NETWORK_INITIALIZED);
-		//Serial.println(F("[WiFi] Set Event EG_NETWORK_INITIALIZED"));
+		//LOGGER.println(F("[WiFi] Set Event EG_NETWORK_INITIALIZED"));
 	}
 	// wenn connected Bit noch nicht gesetzt, dann hier setzen
 	if ((xEventGroupGetBits(hEventGroupNetwork) & EG_NETWORK_CONNECTED) == 0) {
 		xEventGroupSetBits(hEventGroupNetwork, EG_NETWORK_CONNECTED);
-		Serial.println(F("[WiFi] Set Event EG_NETWORK_CONNECTED"));
+		LOGGER.println(F("[WiFi] Set Event EG_NETWORK_CONNECTED"));
 	}
 #else
 	wifi.setStaticConfig(staticIP, staticGateway, staticSubnet, staticDNS);
@@ -423,48 +409,46 @@ void setup(){
 
 	//deleteSettingsFromMemory();		// Just for initialization of memory. Its available via telnet "Erase"
 	// load the last settings and initialize the hardware with this setting
+  	LOGGER.print("loadCurrentSettingsFromMemory...");
 	settings.loadCurrentSettingsFromMemory();
+  	LOGGER.println(" loaded");
 	// initialize Hardware with settings
 	char output[1024];
+  	LOGGER.print("createJSONMessage...");
 	createJSONMessage(output, sizeof(output));
+  	LOGGER.println(" created");
 	handleJSONMessage(output, sizeof(output));
 	settings.changed(false);
 
-
-
 	// initialize WebSocket
+  	LOGGER.println("initialize WebSocket");
   	ws.onEvent(onWsEvent);
   	server.addHandler(&ws);
 
+  	LOGGER.println("Add files to webserver");
 	// Route for root / web page
 	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-//		request->send(KSFileSystem, "/index.html", "text/html");
-//		request->send(KSFileSystem, "/index.html", "text/html", false, processor);
 		request->send(filesystem.getKSFileSystemRef(), "/index.html", "text/html", false, processor);
 	});
 
 	// handle the bootstrap-Files
 	server.on("/src/bootstrap.bundle.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-//		request->send(KSFileSystem, "/src/bootstrap.bundle.min.js", "text/javascript");
 		request->send(filesystem.getKSFileSystemRef(), "/src/bootstrap.bundle.min.js", "text/javascript");
 	});
 	server.on("/src/jquery-3.5.1.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-//		request->send(KSFileSystem, "/src/jquery-3.5.1.min.js", "text/javascript");
 		request->send(filesystem.getKSFileSystemRef(), "/src/jquery-3.5.1.min.js", "text/javascript");
 	});
 	server.on("/src/bootstrap.min.css", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-//		request->send(KSFileSystem, "/src/bootstrap.min.css", "text/css");
 		request->send(filesystem.getKSFileSystemRef(), "/src/bootstrap.min.css", "text/css");
 	});
 
 
 	server.on("/credentials.js", HTTP_GET, [](AsyncWebServerRequest *request){
    		LOGGER.printf("HTTP_GET: %s\n", request->url().c_str());
-//		request->send(KSFileSystem, "/credentials.js", "text/javascript");
 		request->send(filesystem.getKSFileSystemRef(), "/credentials.js", "text/javascript");
 	});
 
@@ -546,28 +530,9 @@ void loop() {
 
 	// save last settings in preferences. Check all 5 minutes
  	BEGIN_CYCLIC(SavePreferences, SAVE_SETTINGS_INTERVALL)
-		if (settings.hasChanged()) {
-			if (settings.saveCurrentSettingsToMemory()) {
-			} else {
-				LOGGER.println("Error in writing settings to preferences!");
-			}
-		}
+		settings.saveCurrentSettingsToMemoryIfChanged();
 	END_CYCLIC()
 
-/*
-	static unsigned long lastSavePreferencesMillis = 0;
-	if (millis() - lastSavePreferencesMillis > SAVE_SETTINGS_INTERVALL) {
-		if (settings.hasChanged()) {
-			if (settings.saveCurrentSettingsToMemory()) {
-				lastSavePreferencesMillis = millis();
-			} else {
-				LOGGER.println("Error in writing settings do preferences!");
-			}
-		} else {
-			lastSavePreferencesMillis = millis();
-		}
-	}
-*/
 
 	// check WebSocket Cleanup every 5sec
 	BEGIN_CYCLIC(CleanUpClients, 5000)
@@ -583,13 +548,13 @@ void loop() {
 
 
 void OnSubscribedCMDChangeVolume(char* topic, byte* payload, unsigned int length) {
-//    Serial.print(F("OnSubscribedCMD ["));
-//    Serial.print(topic);
-//    Serial.print(F("] "));
+//    LOGGER.print(F("OnSubscribedCMD ["));
+//    LOGGER.print(topic);
+//    LOGGER.print(F("] "));
 //    for (int i = 0; i < length; i++) {
-//        Serial.print((char)payload[i]);
+//        LOGGER.print((char)payload[i]);
 //    }
-//    Serial.println();
+//    LOGGER.println();
 
 /*
 	if (strcasecmp(topic, mqttTopicCMDOpenGarage) == 0) {

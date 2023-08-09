@@ -56,6 +56,7 @@ class Settings {
         bool saveCurrentSettingsToMemory();
         bool loadCurrentSettingsFromMemory();
         void deleteSettingsFromMemory();
+        bool saveCurrentSettingsToMemoryIfChanged();
 
         void changed(bool changed = true) {
             _hasChanged = changed;

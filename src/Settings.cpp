@@ -84,9 +84,11 @@ bool Settings::saveCurrentSettingsToMemory() {
 
 		_hasChanged = false;
 		prefs.end();
+		LOGGER.println("saveCurrentSettingsToMemory()");
 		return true;
 	}
 	prefs.end();
+	LOGGER.println("ERROR: Error in saveCurrentSettingsToMemory()");
 	return false;
 }
 
@@ -142,6 +144,7 @@ bool Settings::loadCurrentSettingsFromMemory() {
 		return true;
 	}
 	prefs.end();
+	LOGGER.println("ERROR: Error in loadCurrentSettingsFromMemory()");
 	return false;
 }
 
@@ -162,3 +165,10 @@ void Settings::deleteSettingsFromMemory() {
 }
 
 
+
+bool Settings::saveCurrentSettingsToMemoryIfChanged() {
+	if (hasChanged()) {
+		return saveCurrentSettingsToMemory();
+	}
+	return false;
+}
